@@ -798,12 +798,56 @@ const contractABI = [
   },
   {
     "inputs": [],
-    "name": "getActiveAddresses",
+    "name": "getActiveCharacters",
     "outputs": [
       {
-        "internalType": "address[]",
+        "components": [
+          {
+            "internalType": "address",
+            "name": "addr",
+            "type": "address"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "created",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint32",
+                "name": "maxHp",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint32",
+                "name": "physicalDamage",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint32",
+                "name": "heal",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint32",
+                "name": "hp",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint64",
+                "name": "xp",
+                "type": "uint64"
+              }
+            ],
+            "internalType": "struct ICharacter.Character",
+            "name": "character",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct ICharacter.AddressedCharacter[]",
         "name": "",
-        "type": "address[]"
+        "type": "tuple[]"
       }
     ],
     "stateMutability": "view",
@@ -811,12 +855,56 @@ const contractABI = [
   },
   {
     "inputs": [],
-    "name": "getAddressesInvolvedInFight",
+    "name": "getCharactersInvolvedInFight",
     "outputs": [
       {
-        "internalType": "address[]",
+        "components": [
+          {
+            "internalType": "address",
+            "name": "addr",
+            "type": "address"
+          },
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "created",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint32",
+                "name": "maxHp",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint32",
+                "name": "physicalDamage",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint32",
+                "name": "heal",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint32",
+                "name": "hp",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint64",
+                "name": "xp",
+                "type": "uint64"
+              }
+            ],
+            "internalType": "struct ICharacter.Character",
+            "name": "character",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct ICharacter.AddressedCharacter[]",
         "name": "",
-        "type": "address[]"
+        "type": "tuple[]"
       }
     ],
     "stateMutability": "view",
@@ -967,7 +1055,9 @@ function App() {
     damage: "",
     xpReward: "",
   });
-  const [addressesInvolved, setAddressesInvolved] = useState([]);
+  const [charactersInvolved, setCharactersInvolved] = useState([]);
+  const [activeCharacters, setActiveCharacters] = useState([]);
+  const [selectedCharacter, setSelectedCharacter] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -1029,7 +1119,8 @@ function App() {
   useEffect(() => {
     fetchBossDetails();
     fetchBossStatus();
-    fetchAddressesInvolved();
+    fetchCharactersInvolved();
+    fetchActiveCharacters();
   }, [contract]);
   
   useEffect(() => {
@@ -1041,6 +1132,7 @@ function App() {
       })
       .on("data", () => {
         fetchCharacterDetails(account);
+        fetchActiveCharacters();
       })
       .on("error", (error) => {
         console.error("Failed to subscribe to CharacterSpawned event:", error);
@@ -1061,6 +1153,7 @@ function App() {
       })
       .on("data", () => {
         fetchCharacterDetails(account);
+        fetchActiveCharacters();
       })
       .on("error", (error) => {
         console.error("Failed to subscribe to CharacterHealed event:", error);
@@ -1080,7 +1173,7 @@ function App() {
       .BossIsHit()
       .on("data", () => {
         fetchBossDetails();
-        fetchAddressesInvolved();
+        fetchCharactersInvolved();
       })
       .on("error", (error) => {
         console.error("Failed to subscribe to BossIsHit event:", error);
@@ -1090,7 +1183,7 @@ function App() {
       .on("data", () => {
         fetchBossDetails();
         fetchBossStatus();
-        fetchAddressesInvolved();
+        fetchCharactersInvolved();
       })
       .on("error", (error) => {
         console.error("Failed to subscribe to BossSpawned event:", error);
@@ -1278,6 +1371,24 @@ function App() {
           <p>Heal: {character.heal}</p>
           <p>XP: {character.xp}</p>
           <button onClick={fightBoss} disabled={isBossDead}>Fight Boss</button>
+          <form onSubmit={handleHealCharacter}>
+            <label>
+              <select
+                value={selectedCharacter}
+                onChange={(event) => setSelectedCharacter(event.target.value)}
+              >
+                <option value="">Select a character</option>
+                {activeCharacters
+                  .filter(({ addr, character }) => addr.toLowerCase() !== account.toLowerCase() && character.hp < character.maxHp)
+                  .map(({ addr, character }) => (
+                  <option key={addr} value={addr}>
+                    {character.hp}/{character.maxHp} hp - {addr}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" disabled={!selectedCharacter}>Heal Character</button>
+          </form>
         </div>
       );
     } else {
@@ -1295,7 +1406,7 @@ function App() {
   const renderBoss = (boss) => {
     if (boss) {
       return (<div>
-        <h2>Boss Details - Fighting {addressesInvolved.length} Characters:</h2>
+        <h2>Boss Details - Fighting {charactersInvolved.length} Characters:</h2>
         <div className={!isBossDead ? "greyed-out" : ""}>
           <p>Name: {boss.name}</p>
           <p>HP: {isBossDead ? "💀" : `${boss.hp}/${boss.maxHp}`}</p>
@@ -1395,18 +1506,41 @@ function App() {
     }
   };
 
-  const fetchAddressesInvolved = async () => {
-    console.info("fetchAddressesInvolved");
+  const handleHealCharacter = async (event) => {
+    event.preventDefault();
+    if (!contract || !account || !selectedCharacter) return;
+  
+    try {
+      await contract.methods.healCharacter(selectedCharacter).send({ from: account });
+      setSelectedCharacter("");
+    } catch (error) {
+      console.error("Failed to heal character:", error);
+    }
+  };
+
+  const fetchCharactersInvolved = async () => {
+    console.info("fetchCharactersInvolved");
     if (!contract) {
       console.error(`No contract (${contract})`);
       return;
     }
   
     try {
-      const addresses = await contract.methods.getAddressesInvolvedInFight().call();
-      setAddressesInvolved(addresses);
+      const addresses = await contract.methods.getCharactersInvolvedInFight().call();
+      setCharactersInvolved(addresses);
     } catch (error) {
       console.error("Failed to fetch addresses involved in the fight:", error);
+    }
+  };
+
+  const fetchActiveCharacters = async () => {
+    if (!contract) return;
+  
+    try {
+      const activeCharactersList = await contract.methods.getActiveCharacters().call();
+      setActiveCharacters(activeCharactersList);
+    } catch (error) {
+      console.error("Failed to fetch active characters:", error);
     }
   };
 
@@ -1432,7 +1566,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Solidity Exercise React</h1>
+        <h1>Solidity Exercise React - {activeCharacters.length} active characters!</h1>
         {account ? (
           <div>
             {renderAccount(account, owner)}

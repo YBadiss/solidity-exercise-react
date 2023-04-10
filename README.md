@@ -1,5 +1,8 @@
 # solidity-exercise-react
 
+Code mostly generated with ChatGPT.
+The goal is not quality but allow to use the associated smart contract, see https://github.com/LedgerHQ/solidity-exercise
+
 # Frontend
 
 - [x] Connect to wallet: Done with Metamask
@@ -9,7 +12,7 @@
 
 - [x] Show current Boss
 - [x] Show participating Characters
-- [ ] Show total number of players
+- [x] Show total number of players
 
 ## Owner connected
 
@@ -23,7 +26,7 @@
 - [x] Show attributes
 - [x] Button to fight
 - [x] If Boss is dead, disable "fight boss"
-- [ ] Button to heal with drop down list of characters
+- [x] Button to heal with drop down list of characters
 
 ## Events
 
